@@ -1,0 +1,8 @@
+FROM node:20 AS builder
+
+WORKDIR /home
+
+EXPOSE 8080
+EXPOSE 9002
+
+WORKDIR /project

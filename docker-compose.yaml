@@ -1,0 +1,123 @@
+version: '3'
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.24.0.0/24
+
+volumes:
+  shared-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/adi/major-project
+
+services:
+  bootstrap:
+    image: major-node
+    container_name: bootstrap
+    volumes:
+      - shared-data:/project
+    tty: true
+    ports:
+      - "9002:9002"
+    networks:
+      default:
+        ipv4_address: 172.24.0.2
+    entrypoint: node bootstrap-node/index.js
+  
+  pr-node:
+    image: major-node
+    container_name: pr-node
+    volumes:
+      - shared-data:/project
+    tty: true
+    networks:
+      default:
+        ipv4_address: 172.24.0.3
+    # /project/server-settings/settings.txt
+    entrypoint: node primary-node/index.js
+    depends_on:
+      - bootstrap
+    links:
+      - bootstrap
+
+  bkp-node1:
+    image: major-node
+    container_name: bkp-node1
+    volumes:
+      - shared-data:/project
+    tty: true
+    networks:
+      default:
+        ipv4_address: 172.24.0.4
+    # /project/server-settings/settings.txt
+    entrypoint: node backup-node/index.js
+    depends_on:
+      - pr-node
+    links:
+      - pr-node
+  bkp-node2:
+    image: major-node
+    container_name: bkp-node2
+    volumes:
+      - shared-data:/project
+    tty: true
+    networks:
+      default:
+        ipv4_address: 172.24.0.5
+    # /project/server-settings/settings.txt
+    entrypoint: node backup-node/index.js
+    depends_on:
+      - bkp-node1
+    links:
+      - bkp-node1
+  bkp-node3:
+    image: major-node
+    container_name: bkp-node3
+    volumes:
+      - shared-data:/project
+    tty: true
+    networks:
+      default:
+        ipv4_address: 172.24.0.6
+    # /project/server-settings/settings.txt
+    entrypoint: node backup-node/index.js
+    depends_on:
+      - bkp-node2
+    links:
+      - bkp-node2
+
+  node1:
+    image: major-node
+    container_name: node1
+    volumes:
+      - shared-data:/project
+    tty: true
+    networks:
+      default:
+        ipv4_address: 172.24.0.7
+    # /project/server-settings/settings.txt
+    entrypoint: node client-node/index.js
+    depends_on:
+      - bkp-node3
+    links:
+      - bkp-node3
+  node2:
+    image: major-node
+    container_name: node2
+    volumes:
+      - shared-data:/project
+    tty: true
+    networks:
+      default:
+        ipv4_address: 172.24.0.8
+    # /project/server-settings/settings.txt
+    entrypoint: node client-node/index.js
+    depends_on:
+      - node1
+    links:
+      - node1
